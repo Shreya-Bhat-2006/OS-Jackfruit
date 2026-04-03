@@ -1,111 +1,132 @@
 # Multi-Container Runtime
 
-A lightweight Linux container runtime in C with a long-running supervisor and a kernel-space memory monitor.
-
-Read [`project-guide.md`](project-guide.md) for the full project specification.
+A lightweight Linux container runtime implemented in C with a long-running supervisor and a kernel-space memory monitor.
 
 ---
 
-## Getting Started
+## Team Details
 
-### 1. Fork the Repository
+Shreya Bhat (SRN: PES2UG24CS483)
 
-1. Go to [github.com/shivangjhalani/OS-Jackfruit](https://github.com/shivangjhalani/OS-Jackfruit)
-2. Click **Fork** (top-right)
-3. Clone your fork:
+Shreya Bonal (SRN: PES2UG24CS485)
 
-```bash
-git clone https://github.com/<your-username>/OS-Jackfruit.git
-cd OS-Jackfruit
-```
+Course: UE24CS242B – Operating Systems
 
-### 2. Set Up Your VM
+PES University
 
-You need an **Ubuntu 22.04 or 24.04** VM with **Secure Boot OFF**. WSL will not work.
+---
 
-Install dependencies:
+## Features
 
-```bash
-sudo apt update
-sudo apt install -y build-essential linux-headers-$(uname -r)
-```
+- Multi-container execution using process isolation
+- Supervisor process to manage containers
+- CLI support (start, stop, ps, logs)
+- Kernel module for memory monitoring
+- Soft and hard memory limits enforcement
+- Logging system for container output
+- Scheduling experiments using CPU and I/O workloads
 
-### 3. Run the Environment Check
+---
 
-```bash
+## Build Instructions
+
 cd boilerplate
-chmod +x environment-check.sh
-sudo ./environment-check.sh
-```
 
-Fix any issues reported before moving on.
-
-### 4. Prepare the Root Filesystem
-
-```bash
-mkdir rootfs-base
-wget https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/x86_64/alpine-minirootfs-3.20.3-x86_64.tar.gz
-tar -xzf alpine-minirootfs-3.20.3-x86_64.tar.gz -C rootfs-base
-
-# Make one writable copy per container you plan to run
-cp -a ./rootfs-base ./rootfs-alpha
-cp -a ./rootfs-base ./rootfs-beta
-```
-
-Do not commit `rootfs-base/` or `rootfs-*` directories to your repository.
-
-### 5. Understand the Boilerplate
-
-The `boilerplate/` folder contains starter files:
-
-| File                   | Purpose                                             |
-| ---------------------- | --------------------------------------------------- |
-| `engine.c`             | User-space runtime and supervisor skeleton          |
-| `monitor.c`            | Kernel module skeleton                              |
-| `monitor_ioctl.h`      | Shared ioctl command definitions                    |
-| `Makefile`             | Build targets for both user-space and kernel module |
-| `cpu_hog.c`            | CPU-bound test workload                             |
-| `io_pulse.c`           | I/O-bound test workload                             |
-| `memory_hog.c`         | Memory-consuming test workload                      |
-| `environment-check.sh` | VM environment preflight check                      |
-
-Use these as your starting point. You are free to restructure the repository however you want — the submission requirements are listed in the project guide.
-
-### 6. Build and Verify
-
-```bash
-cd boilerplate
 make
-```
-
-If this compiles without errors, your environment is ready.
-
-### 7. GitHub Actions Smoke Check
-
-Your fork will inherit a minimal GitHub Actions workflow from this repository.
-
-That workflow only performs CI-safe checks:
-
-- `make -C boilerplate ci`
-- user-space binary compilation (`engine`, `memory_hog`, `cpu_hog`, `io_pulse`)
-- `./boilerplate/engine` with no arguments must print usage and exit with a non-zero status
-
-The CI-safe build command is:
-
-```bash
-make -C boilerplate ci
-```
-
-This smoke check does not test kernel-module loading, supervisor runtime behavior, or container execution.
 
 ---
 
-## What to Do Next
+## Running the System
 
-Read [`project-guide.md`](project-guide.md) end to end. It contains:
+Start Supervisor
 
-- The six implementation tasks (multi-container runtime, CLI, logging, kernel monitor, scheduling experiments, cleanup)
-- The engineering analysis you must write
-- The exact submission requirements, including what your `README.md` must contain (screenshots, analysis, design decisions)
+sudo ./engine supervisor ./rootfs-base
 
-Your fork's `README.md` should be replaced with your own project documentation as described in the submission package section of the project guide. (As in get rid of all the above content and replace with your README.md)
+Start Container
+
+sudo ./engine start alpha ./rootfs-alpha "/bin/sh -c 'echo hello; sleep 20'"
+
+List Containers
+
+sudo ./engine ps
+
+View Logs
+
+sudo ./engine logs alpha
+
+Stop Container
+
+sudo ./engine stop alpha
+
+---
+
+## Screenshots
+
+### Supervisor Initialization
+![img](https://github.com/user-attachments/assets/51a5f742-a850-494b-b9af-17f2f8e7bb8e)
+
+### Starting Multiple Containers
+![img](https://github.com/user-attachments/assets/2cebeca1-388f-4b7f-92da-43ab3b817c77)
+
+### Container Status (ps Command)
+![img](https://github.com/user-attachments/assets/29ed130e-7be9-4869-8441-d78179f7acc2)
+
+### Container Logs Output
+![img](https://github.com/user-attachments/assets/1fa2fc44-fabf-45a3-8edc-e48583ca1e34)
+
+### Starting Container with Memory Limits
+![img](https://github.com/user-attachments/assets/1f7ca85c-a5b4-42b3-ba32-b3f1d29331da)
+
+### Hard Memory Limit Enforcement
+![img](https://github.com/user-attachments/assets/c9e37826-e994-4a73-90d3-4e769780a198)
+
+### Scheduling Experiment with Workloads
+![img](https://github.com/user-attachments/assets/099ce52b-6d96-4bcb-8bbf-97c18129dc55)
+
+### CLI Command Execution and Container Creation
+![img](https://github.com/user-attachments/assets/3ea5d579-5d53-4cf2-9328-d5926c2a8cf1)
+
+### Cleanup and Process Termination
+![img](https://github.com/user-attachments/assets/c8e9e3d8-3a52-4522-a750-7562358b8b73)
+
+---
+
+## Scheduling Analysis
+
+We tested CPU-bound (cpu_hog) and I/O-bound (io_pulse) workloads to observe scheduler behavior. CPU-intensive processes consumed more CPU time, while I/O-bound processes frequently yielded the CPU, improving responsiveness. When both workloads ran together, the scheduler balanced execution by allowing I/O tasks to proceed during CPU wait times. This demonstrated fair scheduling and efficient CPU utilization. The experiment showed how process behavior impacts scheduling decisions and system performance.
+
+---
+
+## Logging Mechanism
+
+The logging system is implemented using buffered I/O in user space. Each container's output is captured and stored separately. A supervisor thread continuously monitors and collects logs from running containers. This ensures that logs are not lost and can be accessed later using the logs command. The buffering mechanism improves performance by reducing frequent disk writes.
+
+---
+
+## IPC Mechanism
+
+Inter-process communication is implemented between the CLI and the supervisor using system calls. The CLI sends commands such as start, stop, and logs to the supervisor process, which executes them. The supervisor maintains container state and responds accordingly. This design ensures separation of control and execution, improving modularity and reliability.
+
+---
+
+## Design Decisions
+
+- Used process isolation instead of full virtualization for lightweight execution
+- Implemented a supervisor model for centralized control
+- Kernel module used for accurate memory tracking
+- Simple CLI for ease of use
+- Modular design separating runtime, monitor, and workloads
+
+---
+
+## GitHub Repository
+
+https://github.com/Shreya-Bhat-2006/OS-Jackfruit
+
+---
+
+## Notes
+
+- Root filesystem directories (rootfs-*, alpha, beta) are excluded from the repository
+- Requires Ubuntu VM (not WSL)
+- Secure Boot must be disabled for kernel module
